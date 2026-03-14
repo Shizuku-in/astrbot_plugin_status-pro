@@ -14,6 +14,7 @@ from astrbot.core import AstrBotConfig
 
 class StatusPrPr:
     def __init__(self,
+                    botName = "Astrbot",
                     botNameColorful = False, # 是否使用彩色渐变
                     botNameColor = "rgba(85,70,163,0.8)", # 机器人名称颜色
                     botProfileblurs = 0.8, # 机器人头像模糊度
@@ -32,7 +33,7 @@ class StatusPrPr:
         self.config = {
             "command": "prprstatus",
             "authority": 1,
-            "botName": "AstrBot",
+            "botName": botName,
             "BackgroundURL": [
                 os.path.join(os.path.dirname(__file__), 'htmlmaterial/白圣女.txt'),
                 os.path.join(os.path.dirname(__file__), 'htmlmaterial/ba.txt')
@@ -875,6 +876,7 @@ class MyPlugin(Star):
         DashedboxThickn = config.get("DashedboxThickn", 3)  # 虚线框的粗细
         Dashedboxcolor = config.get("Dashedboxcolor", "rgba(183,168,158,1)")  # 虚线框颜色
         self.render_engine = str(config.get("render_engine", "pillow")).lower()
+        botName = config.get("botname", "Astrbot")
 
         background_urls = []
         # 使用默认
@@ -890,7 +892,7 @@ class MyPlugin(Star):
             for image in background_images:
                 background_urls.append(image)
         # 更新配置
-        self.status_generator = StatusPrPr(botNameColorful, botNameColor, botProfileblurs, logoblurs,
+        self.status_generator = StatusPrPr(botName, botNameColor, botProfileblurs, logoblurs,
                                           Backgroundblurs, Backgroundcolor, dashboardTextColor1,
                                           dashboardTextColor2, dashboardTextColor3, dashboardTextColor4,
                                           systeminformationTextColor, DashedboxThickn, Dashedboxcolor)
@@ -914,9 +916,9 @@ class MyPlugin(Star):
             # 获取消息平台名称
             platform_name = event.platform_meta.name
 
-            # 获得发送者的头像
+            # 获得机器人的头像
 
-            user_id = event.get_sender_id()
+            user_id = event.get_self_id()
 
             avatar = f"https://q4.qlogo.cn/headimg_dl?dst_uin={user_id}&spec=640"
 

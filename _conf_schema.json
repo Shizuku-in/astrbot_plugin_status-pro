@@ -94,5 +94,11 @@
     "type": "string",
     "hint": "虚线框颜色，默认rgba(183,168,158,1)",
     "default": "rgba(183,168,158,1)"
+  },
+  "botname": {
+    "description": "机器人名字",
+    "type": "string",
+    "hint": "自定义机器人名字",
+    "default": "Astrbot"
   }
 }
