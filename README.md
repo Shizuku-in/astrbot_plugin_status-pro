@@ -13,17 +13,18 @@
 
 ## 🐔 使用须知
 > [!CAUTION]\
-> 默认使用 `Pillow` 轻量渲染（更省资源），无需浏览器驱动。若你追求原始 HTML 截图样式，可切换到 `playwright` 模式。
+> 默认使用 `playwright` 渲染（保留原 HTML 截图样式），需要安装浏览器驱动。若你想降低资源占用，可切换到 `pillow` 模式。
 
 
-- 首先 在astrbot 控制台安装 `psutil` 和 `Pillow`
+- 首先 在astrbot 控制台安装 `psutil` 和 `playwright`
   ![image](https://github.com/user-attachments/assets/a6148735-7195-41d2-ab0d-5021c183f06d)
 
-  如果你在配置中将 `render_engine` 设置为 `playwright`，还需要额外安装：
+  装完之后，进入到你`Astrbot`的环境下安装浏览器驱动：
   ```shell
-  pip install playwright
   playwright install chromium
   ```
+
+  如果你想使用更省资源的模式，可以在配置中将 `render_engine` 设为 `pillow`。
 
 如果你是`docker`用户，请尝试如下操作：![Image](https://github.com/user-attachments/assets/4412b547-5b31-49ae-bb45-1dd778b231ce)
 

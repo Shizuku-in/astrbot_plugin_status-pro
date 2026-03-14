@@ -875,7 +875,7 @@ class MyPlugin(Star):
         systeminformationTextColor = config.get("systeminformationTextColor", "rgba(25,99,160,1)")  # 系统信息文本颜色
         DashedboxThickn = config.get("DashedboxThickn", 3)  # 虚线框的粗细
         Dashedboxcolor = config.get("Dashedboxcolor", "rgba(183,168,158,1)")  # 虚线框颜色
-        self.render_engine = str(config.get("render_engine", "pillow")).lower()
+        self.render_engine = str(config.get("render_engine", "playwright")).lower()
         botName = config.get("botname", "Astrbot")
 
         background_urls = []
@@ -892,10 +892,22 @@ class MyPlugin(Star):
             for image in background_images:
                 background_urls.append(image)
         # 更新配置
-        self.status_generator = StatusPrPr(botName, botNameColor, botProfileblurs, logoblurs,
-                                          Backgroundblurs, Backgroundcolor, dashboardTextColor1,
-                                          dashboardTextColor2, dashboardTextColor3, dashboardTextColor4,
-                                          systeminformationTextColor, DashedboxThickn, Dashedboxcolor)
+        self.status_generator = StatusPrPr(
+            botName=botName,
+            botNameColorful=botNameColorful,
+            botNameColor=botNameColor,
+            botProfileblurs=botProfileblurs,
+            logoblurs=logoblurs,
+            Backgroundblurs=Backgroundblurs,
+            Backgroundcolor=Backgroundcolor,
+            dashboardTextColor1=dashboardTextColor1,
+            dashboardTextColor2=dashboardTextColor2,
+            dashboardTextColor3=dashboardTextColor3,
+            dashboardTextColor4=dashboardTextColor4,
+            systeminformationTextColor=systeminformationTextColor,
+            DashedboxThickn=DashedboxThickn,
+            Dashedboxcolor=Dashedboxcolor,
+        )
         self.status_generator.config["BackgroundURL"] = background_urls
         self.plugin_root = os.path.dirname(__file__)
 
