@@ -816,24 +816,27 @@ def render_status_to_image_pillow(payload, output_path="output.png", font_paths=
     bar_colors = ["#1d83be", "#9528b4", "#4da60c", "#385b77"]
     bar_labels = ["CPU", "RAM", "SWAP", "DISK"]
 
-    draw.rounded_rectangle((24, 160, 1256, 470), radius=20, fill="#ffffff")
+    draw.rounded_rectangle((24, 160, 1256, 520), radius=20, fill="#ffffff")
     draw.text((52, 184), "Resource Usage", fill="#2c3a54", font=section_font)
 
     x = 58
-    y = 240
+    y = 235
+    row_gap = 68
     for i, item in enumerate(dashboard):
         progress = max(0.0, min(1.0, item["progress"]))
         draw.text((x, y), bar_labels[i], fill="#344054", font=label_font)
-        draw.rounded_rectangle((x + 140, y + 4, 1160, y + 40), radius=14, fill="#e9edf5")
+        bar_top = y + 8
+        bar_bottom = y + 34
+        draw.rounded_rectangle((x + 140, bar_top, 1160, bar_bottom), radius=14, fill="#e9edf5")
         fill_w = int((1160 - (x + 140)) * progress)
         if fill_w > 0:
-            draw.rounded_rectangle((x + 140, y + 4, x + 140 + fill_w, y + 40), radius=14, fill=bar_colors[i])
-        draw.text((x + 140, y + 52), item["title"], fill="#475467", font=value_font)
-        y += 62
+            draw.rounded_rectangle((x + 140, bar_top, x + 140 + fill_w, bar_bottom), radius=14, fill=bar_colors[i])
+        draw.text((x + 140, y + 40), item["title"], fill="#475467", font=value_font)
+        y += row_gap
 
     # 系统信息
-    draw.rounded_rectangle((24, 500, 1256, 840), radius=20, fill="#ffffff")
-    draw.text((52, 525), "System Information", fill="#2c3a54", font=section_font)
+    draw.rounded_rectangle((24, 540, 1256, 840), radius=20, fill="#ffffff")
+    draw.text((52, 565), "System Information", fill="#2c3a54", font=section_font)
 
     lines = []
     for row in payload["system_info"]["information"]:
@@ -842,10 +845,10 @@ def render_status_to_image_pillow(payload, output_path="output.png", font_paths=
     lines.insert(4, f"Network: {payload['network_status']['text']}")
     lines.append(payload["uptime"])
 
-    line_y = 585
+    line_y = 620
     for line in lines:
         draw.text((58, line_y), line, fill="#344054", font=value_font)
-        line_y += 38
+        line_y += 32
 
     img.save(output_path, format="PNG")
     return output_path
