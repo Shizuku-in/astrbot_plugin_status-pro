@@ -13,14 +13,15 @@
 
 ## 🐔 使用须知
 > [!CAUTION]\
-> 注意！本插件依赖`playwright`渲染`html` 这也就意味着会加大你服务器的负担
+> 默认使用 `Pillow` 轻量渲染（更省资源），无需浏览器驱动。若你追求原始 HTML 截图样式，可切换到 `playwright` 模式。
 
 
-- 首先 在astrbot 控制台安装 `psutil ` 和 `playwright`
+- 首先 在astrbot 控制台安装 `psutil` 和 `Pillow`
   ![image](https://github.com/user-attachments/assets/a6148735-7195-41d2-ab0d-5021c183f06d)
 
-  装完之后。进入到你`Astrbot`的环境下进行安装浏览器驱动，命令如下：
+  如果你在配置中将 `render_engine` 设置为 `playwright`，还需要额外安装：
   ```shell
+  pip install playwright
   playwright install chromium
   ```
 

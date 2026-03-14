@@ -1,5 +1,3 @@
-from playwright.async_api import async_playwright
-
 from astrbot.api.event import filter, AstrMessageEvent, MessageEventResult
 from astrbot.api.star import Context, Star, register
 from astrbot.api import logger
@@ -9,6 +7,7 @@ import random
 import psutil
 import platform
 import time
+from PIL import Image, ImageDraw, ImageFont
 
 from astrbot.core import AstrBotConfig
 
@@ -87,7 +86,8 @@ class StatusPrPr:
 
     def get_cpu_usage(self):
         """获取CPU使用率"""
-        cpu_percent = psutil.cpu_percent(interval=1)
+        # 使用短采样窗口，减少命令整体阻塞时长。
+        cpu_percent = psutil.cpu_percent(interval=0.1)
         cpu_freq = psutil.cpu_freq()
         if cpu_freq:
             freq = f"{cpu_freq.current / 1000:.2f}"
@@ -155,8 +155,9 @@ class StatusPrPr:
         # 获取初始网络计数器
         net_io_counters_start = psutil.net_io_counters()
 
-        # 等待一小段时间
-        time.sleep(1)
+        # 缩短采样间隔，降低渲染等待。
+        sample_seconds = 0.3
+        time.sleep(sample_seconds)
 
         # 获取结束时的网络计数器
         net_io_counters_end = psutil.net_io_counters()
@@ -178,13 +179,23 @@ class StatusPrPr:
 
         # 计算网络使用进度（用于可视化，最大值假设为100Mbps）
         max_speed = 100 * 1024 * 1024 / 8  # 100Mbps 转换为字节
-        network_progress = min(1.0, (bytes_sent + bytes_recv) / max_speed)
+        network_progress = min(1.0, (bytes_sent + bytes_recv) / (max_speed * sample_seconds))
 
         return {
             "text": f"↑ {format_bytes(bytes_sent)} ↓ {format_bytes(bytes_recv)}",
             "progress": network_progress,
             "sent": bytes_sent,
             "recv": bytes_recv
+        }
+
+    def get_status_payload(self, platform_name="aiocqhttp", plugins_nums=0):
+        """生成渲染层可复用的数据载荷"""
+        return {
+            "system_info": self.get_system_info(plugins_nums),
+            "network_status": self.get_network_speed(),
+            "uptime": self.duration_time(time.time() - psutil.boot_time()),
+            "platform_name": platform_name,
+            "bot_name": self.config.get("botName", "AstrBot")
         }
 
     def duration_time(self, uptime_seconds):
@@ -760,6 +771,8 @@ class StatusPrPr:
 
 async def render_html_to_image(content, output_path="output.png"):
     """将HTML内容渲染为图片"""
+    from playwright.async_api import async_playwright
+
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
         page = await browser.new_page()
@@ -770,6 +783,71 @@ async def render_html_to_image(content, output_path="output.png"):
         # 截图并保存
         await page.screenshot(path=output_path, full_page=True)
         await browser.close()
+    return output_path
+
+
+def _safe_load_font(font_paths, size):
+    for font_path in font_paths:
+        try:
+            if font_path and os.path.exists(font_path):
+                return ImageFont.truetype(font_path, size=size)
+        except Exception:
+            continue
+    return ImageFont.load_default()
+
+
+def render_status_to_image_pillow(payload, output_path="output.png", font_paths=None):
+    """使用 Pillow 直接绘制状态图，避免浏览器渲染开销。"""
+    font_paths = font_paths or []
+    img = Image.new("RGB", (1280, 860), "#f2f5fa")
+    draw = ImageDraw.Draw(img)
+
+    title_font = _safe_load_font(font_paths, 56)
+    section_font = _safe_load_font(font_paths, 34)
+    label_font = _safe_load_font(font_paths, 28)
+    value_font = _safe_load_font(font_paths, 26)
+
+    # 头部
+    draw.rounded_rectangle((24, 20, 1256, 130), radius=24, fill="#dde8ff")
+    draw.text((56, 48), f"{payload['bot_name']} Status", fill="#243b6b", font=title_font)
+
+    # 仪表条
+    dashboard = payload["system_info"]["dashboard"]
+    bar_colors = ["#1d83be", "#9528b4", "#4da60c", "#385b77"]
+    bar_labels = ["CPU", "RAM", "SWAP", "DISK"]
+
+    draw.rounded_rectangle((24, 160, 1256, 470), radius=20, fill="#ffffff")
+    draw.text((52, 184), "Resource Usage", fill="#2c3a54", font=section_font)
+
+    x = 58
+    y = 240
+    for i, item in enumerate(dashboard):
+        progress = max(0.0, min(1.0, item["progress"]))
+        draw.text((x, y), bar_labels[i], fill="#344054", font=label_font)
+        draw.rounded_rectangle((x + 140, y + 4, 1160, y + 40), radius=14, fill="#e9edf5")
+        fill_w = int((1160 - (x + 140)) * progress)
+        if fill_w > 0:
+            draw.rounded_rectangle((x + 140, y + 4, x + 140 + fill_w, y + 40), radius=14, fill=bar_colors[i])
+        draw.text((x + 140, y + 52), item["title"], fill="#475467", font=value_font)
+        y += 62
+
+    # 系统信息
+    draw.rounded_rectangle((24, 500, 1256, 840), radius=20, fill="#ffffff")
+    draw.text((52, 525), "System Information", fill="#2c3a54", font=section_font)
+
+    lines = []
+    for row in payload["system_info"]["information"]:
+        lines.append(f"{row['key']}: {row['value']}")
+    lines.insert(3, f"Platform: {payload['platform_name']}")
+    lines.insert(4, f"Network: {payload['network_status']['text']}")
+    lines.append(payload["uptime"])
+
+    line_y = 585
+    for line in lines:
+        draw.text((58, line_y), line, fill="#344054", font=value_font)
+        line_y += 38
+
+    img.save(output_path, format="PNG")
     return output_path
 
 
@@ -793,6 +871,7 @@ class MyPlugin(Star):
         systeminformationTextColor = config.get("systeminformationTextColor", "rgba(25,99,160,1)")  # 系统信息文本颜色
         DashedboxThickn = config.get("DashedboxThickn", 3)  # 虚线框的粗细
         Dashedboxcolor = config.get("Dashedboxcolor", "rgba(183,168,158,1)")  # 虚线框颜色
+        self.render_engine = str(config.get("render_engine", "pillow")).lower()
 
         background_urls = []
         # 使用默认
@@ -813,6 +892,7 @@ class MyPlugin(Star):
                                           dashboardTextColor2, dashboardTextColor3, dashboardTextColor4,
                                           systeminformationTextColor, DashedboxThickn, Dashedboxcolor)
         self.status_generator.config["BackgroundURL"] = background_urls
+        self.plugin_root = os.path.dirname(__file__)
 
     async def initialize(self):
         """可选择实现异步的插件初始化方法，当实例化该插件类之后会自动调用该方法。"""
@@ -837,11 +917,15 @@ class MyPlugin(Star):
 
             avatar = f"https://q4.qlogo.cn/headimg_dl?dst_uin={user_id}&spec=640"
 
-            # 生成 HTML
+            payload = self.status_generator.get_status_payload(platform_name, plugins_nums=len(self.context.get_all_stars()))
 
-            html_content = self.status_generator.generate_html(platform_name , plugins_nums=len(self.context.get_all_stars()), avatar=avatar)
-            # 渲染 HTML 为图片
-            await render_html_to_image(html_content)
+            if self.render_engine == "playwright":
+                html_content = self.status_generator.generate_html(platform_name, plugins_nums=len(self.context.get_all_stars()), avatar=avatar)
+                await render_html_to_image(html_content)
+            else:
+                font1 = os.path.join(self.plugin_root, "font", "Gugi-Regular.ttf")
+                font2 = os.path.join(self.plugin_root, "font", "HachiMaruPop-Regular.ttf")
+                render_status_to_image_pillow(payload, output_path="output.png", font_paths=[font1, font2])
 
             yield event.image_result("output.png")
         except Exception as e:

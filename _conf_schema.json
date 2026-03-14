@@ -11,6 +11,12 @@
     "hint": "自定义的背景图列表，如: [\"https://example.com/image1.jpg\", \"https://example.com/image2.jpg\"]",
     "default": []
   },
+  "render_engine": {
+    "description": "渲染引擎",
+    "type": "string",
+    "hint": "可选值: pillow(默认, 更省资源) / playwright(保留原HTML截图效果)",
+    "default": "pillow"
+  },
   "botNameColorful": {
     "description": "是否使用彩色昵称",
     "type": "bool",
